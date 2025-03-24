@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carte des Nœuds Tor</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        #map { height: 100vh; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        const map = L.map('map').setView([20, 0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        async function fetchTorNodes() {
+    try {
+        const response = await fetch("https://onionoo.torproject.org/summary");
+        const data = await response.json();
+        
+        console.log(data); // Vérifier les données dans la console
+
+        data.relays.forEach(async (node) => {
+            if (node.a && node.a.length > 0) {
+                const ip = node.a[0];  // Prend la première IP du nœud
+
+                try {
+                    // Utilise une API de géolocalisation pour obtenir la latitude et la longitude
+                    const geoResponse = await fetch(`https://ipinfo.io/${ip}/json?token=4d90c8c084e410`);
+                    const geoData = await geoResponse.json();
+
+                    if (geoData.loc) {
+                        const [lat, lon] = geoData.loc.split(",");
+                        L.marker([lat, lon]).addTo(map)
+                            .bindPopup(`<b>IP:</b> ${ip}<br><b>Pays:</b> ${geoData.country}`);
+                    }
+
+                } catch (geoError) {
+                    console.error(`Erreur de géolocalisation pour ${ip}`, geoError);
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error("Erreur lors de la récupération des nœuds Tor :", error);
+    }
+}
+
+fetchTorNodes();
+
+
+        fetchTorNodes();
+    </script>
+</body>
+</html>
